@@ -36,6 +36,8 @@ export const History: React.FC<HistoryProps> = ({ onBack }) => {
   const [records, setRecords] = useState<CustomsRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ todos: 0, activo: 0, inactivo: 0, pendiente: 0 });
+  const [selectedRecord, setSelectedRecord] = useState<CustomsRecord | null>(null);
+  const [showDocuments, setShowDocuments] = useState(false);
   const { notifications, showSuccess, showError, removeNotification } = useNotification();
 
   useEffect(() => {
@@ -158,6 +160,16 @@ export const History: React.FC<HistoryProps> = ({ onBack }) => {
   const clearFilters = () => {
     setSearchTerm('');
     setStatusFilter('todos');
+  };
+
+  const handleViewDocuments = (record: CustomsRecord) => {
+    setSelectedRecord(record);
+    setShowDocuments(true);
+  };
+
+  const closeDocumentsModal = () => {
+    setShowDocuments(false);
+    setSelectedRecord(null);
   };
 
   return (
@@ -376,9 +388,14 @@ export const History: React.FC<HistoryProps> = ({ onBack }) => {
                         <div className="flex flex-col items-end gap-3 lg:min-w-[200px]">
                           {getStatusBadge(record.status)}
                           <div className="flex gap-2">
-                            <Button size="sm" variant="outline" className="flex items-center space-x-1">
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="flex items-center space-x-1"
+                              onClick={() => handleViewDocuments(record)}
+                            >
                               <Eye className="w-4 h-4" />
-                              <span>Ver</span>
+                              <span>Ver Documentos</span>
                             </Button>
                             <Button size="sm" variant="outline" className="flex items-center space-x-1">
                               <Download className="w-4 h-4" />
@@ -414,6 +431,115 @@ export const History: React.FC<HistoryProps> = ({ onBack }) => {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Modal de Documentos */}
+      {showDocuments && selectedRecord && (
+        <DocumentsModal 
+          record={selectedRecord} 
+          onClose={closeDocumentsModal} 
+        />
+      )}
+    </div>
+  );
+};
+
+// Modal para mostrar documentos
+interface DocumentsModalProps {
+  record: CustomsRecord;
+  onClose: () => void;
+}
+
+const DocumentsModal: React.FC<DocumentsModalProps> = ({ record, onClose }) => {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">
+              Documentos de {record.user.firstName} {record.user.lastName}
+            </h2>
+            <Button variant="ghost" onClick={onClose}>
+              <XCircle className="w-6 h-6" />
+            </Button>
+          </div>
+
+          {record.documents.length === 0 ? (
+            <div className="text-center py-8">
+              <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">No hay documentos subidos</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {record.documents.map((doc) => (
+                <div key={doc.id} className="border rounded-lg p-4">
+                  <div className="mb-4">
+                    <h3 className="font-semibold text-lg mb-2">
+                      {doc.type === 'passport' ? 'Pasaporte' : 'Cédula de Identidad'}
+                    </h3>
+                    <div className="space-y-2 text-sm">
+                      <p><strong>Número:</strong> {doc.documentNumber}</p>
+                      <p><strong>Vencimiento:</strong> {new Date(doc.expirationDate).toLocaleDateString('es-ES')}</p>
+                      <p><strong>Estado:</strong> 
+                        <span className={`ml-2 px-2 py-1 rounded text-xs ${
+                          doc.status === 'approved' ? 'bg-green-100 text-green-800' :
+                          doc.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {doc.status === 'approved' ? 'Aprobado' :
+                           doc.status === 'pending' ? 'Pendiente' : 'Rechazado'}
+                        </span>
+                      </p>
+                      <p><strong>Subido:</strong> {new Date(doc.uploadedAt).toLocaleDateString('es-ES')}</p>
+                      {doc.notes && (
+                        <p><strong>Notas:</strong> {doc.notes}</p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Imagen del documento */}
+                  <div className="border rounded-lg overflow-hidden">
+                    <img 
+                      src={`http://localhost:3000${doc.fileUrl}`}
+                      alt={`${doc.type === 'passport' ? 'Pasaporte' : 'Cédula'} de ${record.user.firstName}`}
+                      className="w-full h-64 object-contain bg-gray-50"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlbiBubyBkaXNwb25pYmxlPC90ZXh0Pjwvc3ZnPg==';
+                      }}
+                    />
+                  </div>
+                  
+                  <div className="mt-4 flex gap-2">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={() => window.open(`http://localhost:3000${doc.fileUrl}`, '_blank')}
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      Ver Original
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={() => {
+                        const link = document.createElement('a');
+                        link.href = `http://localhost:3000${doc.fileUrl}`;
+                        link.download = `${doc.type}_${doc.documentNumber}.jpg`;
+                        link.click();
+                      }}
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Descargar
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
