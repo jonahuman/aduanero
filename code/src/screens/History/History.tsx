@@ -172,6 +172,25 @@ export const History: React.FC<HistoryProps> = ({ onBack }) => {
     setSelectedRecord(null);
   };
 
+  const handleToggleStatus = async (record: CustomsRecord) => {
+    try {
+      const response = await apiService.toggleCustomsRecordStatus(record.id);
+      showSuccess(response.message);
+      
+      // Actualizar el registro en el estado local
+      setRecords(prevRecords => 
+        prevRecords.map(r => 
+          r.id === record.id ? response.record : r
+        )
+      );
+      
+      // Recargar estadísticas
+      loadRecords();
+    } catch (error: any) {
+      showError(error.message || 'Error al cambiar estado');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100 p-4">
       {notifications.map(notification => (
@@ -397,6 +416,26 @@ export const History: React.FC<HistoryProps> = ({ onBack }) => {
                               <Eye className="w-4 h-4" />
                               <span>Ver Documentos</span>
                             </Button>
+                            
+                            <Button 
+                              size="sm" 
+                              variant={record.status === 'activo' ? 'destructive' : 'default'}
+                              className="flex items-center space-x-1"
+                              onClick={() => handleToggleStatus(record)}
+                            >
+                              {record.status === 'activo' ? (
+                                <>
+                                  <XCircle className="w-4 h-4" />
+                                  <span>Desactivar</span>
+                                </>
+                              ) : (
+                                <>
+                                  <CheckCircle className="w-4 h-4" />
+                                  <span>Activar</span>
+                                </>
+                              )}
+                            </Button>
+                            
                             <Button size="sm" variant="outline" className="flex items-center space-x-1">
                               <Download className="w-4 h-4" />
                               <span>Descargar</span>
@@ -497,17 +536,35 @@ const DocumentsModal: React.FC<DocumentsModalProps> = ({ record, onClose }) => {
                     </div>
                   </div>
                   
-                  {/* Imagen del documento */}
+                  {/* Visualización del documento */}
                   <div className="border rounded-lg overflow-hidden">
-                    <img 
-                      src={`http://localhost:3000${doc.fileUrl}`}
-                      alt={`${doc.type === 'passport' ? 'Pasaporte' : 'Cédula'} de ${record.user.firstName}`}
-                      className="w-full h-64 object-contain bg-gray-50"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlbiBubyBkaXNwb25pYmxlPC90ZXh0Pjwvc3ZnPg==';
-                      }}
-                    />
+                    {doc.fileUrl.toLowerCase().endsWith('.pdf') ? (
+                      // Para PDFs
+                      <div className="h-64 bg-gray-50 flex items-center justify-center">
+                        <div className="text-center">
+                          <FileText className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                          <p className="text-sm text-gray-600">Documento PDF</p>
+                          <Button 
+                            size="sm" 
+                            className="mt-2"
+                            onClick={() => window.open(`http://localhost:3000${doc.fileUrl}`, '_blank')}
+                          >
+                            Ver PDF
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      // Para imágenes
+                      <img 
+                        src={`http://localhost:3000${doc.fileUrl}`}
+                        alt={`${doc.type === 'passport' ? 'Pasaporte' : 'Cédula'} de ${record.user.firstName}`}
+                        className="w-full h-64 object-contain bg-gray-50"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlbiBubyBkaXNwb25pYmxlPC90ZXh0Pjwvc3ZnPg==';
+                        }}
+                      />
+                    )}
                   </div>
                   
                   <div className="mt-4 flex gap-2">

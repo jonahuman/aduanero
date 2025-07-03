@@ -236,6 +236,13 @@ class ApiService {
   async getActivitySummary(): Promise<{ today: { users: number; documents: number; records: number }; date: string }> {
     return await this.request('/activity/summary');
   }
+
+  async toggleCustomsRecordStatus(recordId: string): Promise<{ message: string; record: CustomsRecord }> {
+    return await this.request(`/customs/records/${recordId}/toggle-status`, {
+      method: 'PUT',
+      data: {},
+    });
+  }
 }
 
 export const apiService = new ApiService();
