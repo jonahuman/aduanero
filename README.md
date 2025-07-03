@@ -29,6 +29,9 @@ cd code
 # Instalar dependencias del proyecto
 npm install
 
+# Instalar axios para conexión con backend
+npm install axios
+
 # (Opcional) Auditoría y corrección de vulnerabilidades
 npm audit fix --force
 
