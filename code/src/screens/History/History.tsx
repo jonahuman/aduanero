@@ -1,9 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Input } from '../../components/ui/input';
 import { FiltroEstado } from '../FiltroEstado';
+import { useNotification, Notification } from '../../components/ui/notification';
+import { apiService } from '../../services/api';
 import { 
   History as HistoryIcon, 
   Search, 
@@ -26,199 +28,237 @@ interface HistoryProps {
   onBack: () => void;
 }
 
+// Datos simulados como fallback
+const mockRecords: CustomsRecord[] = [
+  {
+    id: '1',
+    userId: '1',
+    user: {
+      id: '1',
+      email: 'juan.perez@email.com',
+      firstName: 'Juan Carlos',
+      lastName: 'Pérez García',
+      nationality: 'Colombiana',
+      dateOfBirth: '1985-03-15',
+      phoneNumber: '+57 300 123 4567',
+      address: 'Calle 123 #45-67, Bogotá',
+      createdAt: '2024-01-15T10:30:00Z',
+    },
+    documents: [
+      {
+        id: '1',
+        userId: '1',
+        type: 'passport',
+        documentNumber: 'AB123456',
+        expirationDate: '2028-03-15',
+        fileUrl: '/docs/passport1.jpg',
+        status: 'approved',
+        uploadedAt: '2024-01-15T10:30:00Z',
+      }
+    ],
+    status: 'activo',
+    processedAt: '2024-01-15T10:30:00Z',
+    notes: 'Documentos verificados correctamente. Usuario habilitado para procesos aduaneros.',
+  },
+  {
+    id: '2',
+    userId: '2',
+    user: {
+      id: '2',
+      email: 'maria.rodriguez@email.com',
+      firstName: 'María Elena',
+      lastName: 'Rodríguez López',
+      nationality: 'Mexicana',
+      dateOfBirth: '1990-07-22',
+      phoneNumber: '+52 55 987 6543',
+      address: 'Av. Reforma 456, Ciudad de México',
+      createdAt: '2024-01-14T14:20:00Z',
+    },
+    documents: [
+      {
+        id: '2',
+        userId: '2',
+        type: 'id_card',
+        documentNumber: 'MEX987654321',
+        expirationDate: '2026-07-22',
+        fileUrl: '/docs/id2.jpg',
+        status: 'pending',
+        uploadedAt: '2024-01-14T14:20:00Z',
+      }
+    ],
+    status: 'pendiente',
+    processedAt: '2024-01-14T14:20:00Z',
+    notes: 'Esperando verificación adicional. Documentos en proceso de revisión.',
+  },
+  {
+    id: '3',
+    userId: '3',
+    user: {
+      id: '3',
+      email: 'carlos.martinez@email.com',
+      firstName: 'Carlos Alberto',
+      lastName: 'Martínez Silva',
+      nationality: 'Argentina',
+      dateOfBirth: '1978-11-08',
+      phoneNumber: '+54 11 2345 6789',
+      address: 'Av. Corrientes 789, Buenos Aires',
+      createdAt: '2024-01-13T09:15:00Z',
+    },
+    documents: [
+      {
+        id: '3',
+        userId: '3',
+        type: 'passport',
+        documentNumber: 'AR789012',
+        expirationDate: '2025-11-08',
+        fileUrl: '/docs/passport3.jpg',
+        status: 'rejected',
+        uploadedAt: '2024-01-13T09:15:00Z',
+      }
+    ],
+    status: 'inactivo',
+    processedAt: '2024-01-13T09:15:00Z',
+    notes: 'Documento expirado, requiere renovación. Usuario suspendido temporalmente.',
+  },
+  {
+    id: '4',
+    userId: '4',
+    user: {
+      id: '4',
+      email: 'ana.gonzalez@email.com',
+      firstName: 'Ana Patricia',
+      lastName: 'González Herrera',
+      nationality: 'Peruana',
+      dateOfBirth: '1992-05-30',
+      phoneNumber: '+51 1 456 7890',
+      address: 'Jr. Lima 321, Lima',
+      createdAt: '2024-01-12T16:45:00Z',
+    },
+    documents: [
+      {
+        id: '4',
+        userId: '4',
+        type: 'id_card',
+        documentNumber: 'PE456789012',
+        expirationDate: '2027-05-30',
+        fileUrl: '/docs/id4.jpg',
+        status: 'approved',
+        uploadedAt: '2024-01-12T16:45:00Z',
+      }
+    ],
+    status: 'activo',
+    processedAt: '2024-01-12T16:45:00Z',
+    notes: 'Proceso completado exitosamente. Usuario activo en el sistema.',
+  },
+  {
+    id: '5',
+    userId: '5',
+    user: {
+      id: '5',
+      email: 'luis.fernandez@email.com',
+      firstName: 'Luis Miguel',
+      lastName: 'Fernández Castro',
+      nationality: 'Chilena',
+      dateOfBirth: '1988-09-12',
+      phoneNumber: '+56 9 8765 4321',
+      address: 'Av. Providencia 567, Santiago',
+      createdAt: '2024-01-11T11:30:00Z',
+    },
+    documents: [
+      {
+        id: '5',
+        userId: '5',
+        type: 'passport',
+        documentNumber: 'CL345678',
+        expirationDate: '2026-09-12',
+        fileUrl: '/docs/passport5.jpg',
+        status: 'pending',
+        uploadedAt: '2024-01-11T11:30:00Z',
+      }
+    ],
+    status: 'pendiente',
+    processedAt: '2024-01-11T11:30:00Z',
+    notes: 'Documentos recibidos. Esperando asignación de revisor.',
+  },
+  {
+    id: '6',
+    userId: '6',
+    user: {
+      id: '6',
+      email: 'sofia.torres@email.com',
+      firstName: 'Sofía Isabel',
+      lastName: 'Torres Mendoza',
+      nationality: 'Ecuatoriana',
+      dateOfBirth: '1995-02-28',
+      phoneNumber: '+593 99 123 4567',
+      address: 'Av. Amazonas 890, Quito',
+      createdAt: '2024-01-10T08:15:00Z',
+    },
+    documents: [
+      {
+        id: '6',
+        userId: '6',
+        type: 'id_card',
+        documentNumber: 'EC123456789',
+        expirationDate: '2024-02-28',
+        fileUrl: '/docs/id6.jpg',
+        status: 'rejected',
+        uploadedAt: '2024-01-10T08:15:00Z',
+      }
+    ],
+    status: 'inactivo',
+    processedAt: '2024-01-10T08:15:00Z',
+    notes: 'Documento vencido. Se requiere actualización de documentación.',
+  },
+];
+
 export const History: React.FC<HistoryProps> = ({ onBack }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('todos');
+  const [records, setRecords] = useState<CustomsRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({ todos: 0, activo: 0, inactivo: 0, pendiente: 0 });
+  const { notifications, showSuccess, showError, removeNotification } = useNotification();
 
-  // Datos simulados expandidos para mejor demostración
-  const mockRecords: CustomsRecord[] = [
-    {
-      id: '1',
-      userId: '1',
-      user: {
-        id: '1',
-        email: 'juan.perez@email.com',
-        firstName: 'Juan Carlos',
-        lastName: 'Pérez García',
-        nationality: 'Colombiana',
-        dateOfBirth: '1985-03-15',
-        phoneNumber: '+57 300 123 4567',
-        address: 'Calle 123 #45-67, Bogotá',
-        createdAt: '2024-01-15T10:30:00Z',
-      },
-      documents: [
-        {
-          id: '1',
-          userId: '1',
-          type: 'passport',
-          documentNumber: 'AB123456',
-          expirationDate: '2028-03-15',
-          fileUrl: '/docs/passport1.jpg',
-          status: 'approved',
-          uploadedAt: '2024-01-15T10:30:00Z',
-        }
-      ],
-      status: 'activo',
-      processedAt: '2024-01-15T10:30:00Z',
-      notes: 'Documentos verificados correctamente. Usuario habilitado para procesos aduaneros.',
-    },
-    {
-      id: '2',
-      userId: '2',
-      user: {
-        id: '2',
-        email: 'maria.rodriguez@email.com',
-        firstName: 'María Elena',
-        lastName: 'Rodríguez López',
-        nationality: 'Mexicana',
-        dateOfBirth: '1990-07-22',
-        phoneNumber: '+52 55 987 6543',
-        address: 'Av. Reforma 456, Ciudad de México',
-        createdAt: '2024-01-14T14:20:00Z',
-      },
-      documents: [
-        {
-          id: '2',
-          userId: '2',
-          type: 'id_card',
-          documentNumber: 'MEX987654321',
-          expirationDate: '2026-07-22',
-          fileUrl: '/docs/id2.jpg',
-          status: 'pending',
-          uploadedAt: '2024-01-14T14:20:00Z',
-        }
-      ],
-      status: 'pendiente',
-      processedAt: '2024-01-14T14:20:00Z',
-      notes: 'Esperando verificación adicional. Documentos en proceso de revisión.',
-    },
-    {
-      id: '3',
-      userId: '3',
-      user: {
-        id: '3',
-        email: 'carlos.martinez@email.com',
-        firstName: 'Carlos Alberto',
-        lastName: 'Martínez Silva',
-        nationality: 'Argentina',
-        dateOfBirth: '1978-11-08',
-        phoneNumber: '+54 11 2345 6789',
-        address: 'Av. Corrientes 789, Buenos Aires',
-        createdAt: '2024-01-13T09:15:00Z',
-      },
-      documents: [
-        {
-          id: '3',
-          userId: '3',
-          type: 'passport',
-          documentNumber: 'AR789012',
-          expirationDate: '2025-11-08',
-          fileUrl: '/docs/passport3.jpg',
-          status: 'rejected',
-          uploadedAt: '2024-01-13T09:15:00Z',
-        }
-      ],
-      status: 'inactivo',
-      processedAt: '2024-01-13T09:15:00Z',
-      notes: 'Documento expirado, requiere renovación. Usuario suspendido temporalmente.',
-    },
-    {
-      id: '4',
-      userId: '4',
-      user: {
-        id: '4',
-        email: 'ana.gonzalez@email.com',
-        firstName: 'Ana Patricia',
-        lastName: 'González Herrera',
-        nationality: 'Peruana',
-        dateOfBirth: '1992-05-30',
-        phoneNumber: '+51 1 456 7890',
-        address: 'Jr. Lima 321, Lima',
-        createdAt: '2024-01-12T16:45:00Z',
-      },
-      documents: [
-        {
-          id: '4',
-          userId: '4',
-          type: 'id_card',
-          documentNumber: 'PE456789012',
-          expirationDate: '2027-05-30',
-          fileUrl: '/docs/id4.jpg',
-          status: 'approved',
-          uploadedAt: '2024-01-12T16:45:00Z',
-        }
-      ],
-      status: 'activo',
-      processedAt: '2024-01-12T16:45:00Z',
-      notes: 'Proceso completado exitosamente. Usuario activo en el sistema.',
-    },
-    {
-      id: '5',
-      userId: '5',
-      user: {
-        id: '5',
-        email: 'luis.fernandez@email.com',
-        firstName: 'Luis Miguel',
-        lastName: 'Fernández Castro',
-        nationality: 'Chilena',
-        dateOfBirth: '1988-09-12',
-        phoneNumber: '+56 9 8765 4321',
-        address: 'Av. Providencia 567, Santiago',
-        createdAt: '2024-01-11T11:30:00Z',
-      },
-      documents: [
-        {
-          id: '5',
-          userId: '5',
-          type: 'passport',
-          documentNumber: 'CL345678',
-          expirationDate: '2026-09-12',
-          fileUrl: '/docs/passport5.jpg',
-          status: 'pending',
-          uploadedAt: '2024-01-11T11:30:00Z',
-        }
-      ],
-      status: 'pendiente',
-      processedAt: '2024-01-11T11:30:00Z',
-      notes: 'Documentos recibidos. Esperando asignación de revisor.',
-    },
-    {
-      id: '6',
-      userId: '6',
-      user: {
-        id: '6',
-        email: 'sofia.torres@email.com',
-        firstName: 'Sofía Isabel',
-        lastName: 'Torres Mendoza',
-        nationality: 'Ecuatoriana',
-        dateOfBirth: '1995-02-28',
-        phoneNumber: '+593 99 123 4567',
-        address: 'Av. Amazonas 890, Quito',
-        createdAt: '2024-01-10T08:15:00Z',
-      },
-      documents: [
-        {
-          id: '6',
-          userId: '6',
-          type: 'id_card',
-          documentNumber: 'EC123456789',
-          expirationDate: '2024-02-28',
-          fileUrl: '/docs/id6.jpg',
-          status: 'rejected',
-          uploadedAt: '2024-01-10T08:15:00Z',
-        }
-      ],
-      status: 'inactivo',
-      processedAt: '2024-01-10T08:15:00Z',
-      notes: 'Documento vencido. Se requiere actualización de documentación.',
-    },
-  ];
+  useEffect(() => {
+    loadRecords();
+  }, []);
+
+  const loadRecords = async () => {
+    try {
+      setLoading(true);
+      const response = await apiService.getCustomsRecords(1, 50, '', '');
+      setRecords(response.records || []);
+      
+      // Obtener estadísticas del servidor
+      const statsResponse = await apiService.getCustomsStats();
+      setStats({
+        todos: statsResponse.customs_records.total,
+        activo: statsResponse.customs_records.active,
+        inactivo: statsResponse.customs_records.inactive,
+        pendiente: statsResponse.customs_records.pending,
+      });
+    } catch (error: any) {
+      showError('No se pudieron cargar los registros');
+      // Usar datos mock como fallback
+      setRecords(mockRecords);
+      setStats({
+        todos: mockRecords.length,
+        activo: mockRecords.filter(r => r.status === 'activo').length,
+        inactivo: mockRecords.filter(r => r.status === 'inactivo').length,
+        pendiente: mockRecords.filter(r => r.status === 'pendiente').length,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   // Filtrado mejorado con lógica más robusta
   const filteredRecords = useMemo(() => {
     console.log('Aplicando filtros:', { searchTerm, statusFilter }); // Debug
     
-    let filtered = mockRecords.filter(record => {
+    let filtered = records.filter(record => {
       // Filtro de búsqueda
       const matchesSearch = searchTerm === '' || 
         record.user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -237,19 +277,10 @@ export const History: React.FC<HistoryProps> = ({ onBack }) => {
 
     console.log('Registros filtrados:', filtered.length); // Debug
     return filtered;
-  }, [searchTerm, statusFilter]);
+  }, [searchTerm, statusFilter, records]);
 
-  // Estadísticas por estado
-  const statusStats = useMemo(() => {
-    const stats = {
-      todos: mockRecords.length,
-      activo: mockRecords.filter(r => r.status === 'activo').length,
-      inactivo: mockRecords.filter(r => r.status === 'inactivo').length,
-      pendiente: mockRecords.filter(r => r.status === 'pendiente').length,
-    };
-    console.log('Estadísticas por estado:', stats); // Debug
-    return stats;
-  }, []);
+  // Usar estadísticas del estado
+  const statusStats = stats;
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -319,6 +350,14 @@ export const History: React.FC<HistoryProps> = ({ onBack }) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100 p-4">
+      {notifications.map(notification => (
+        <Notification
+          key={notification.id}
+          type={notification.type}
+          message={notification.message}
+          onClose={() => removeNotification(notification.id)}
+        />
+      ))}
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
           <Button
@@ -450,7 +489,12 @@ export const History: React.FC<HistoryProps> = ({ onBack }) => {
 
             {/* Lista de Registros */}
             <div className="space-y-4">
-              {filteredRecords.length === 0 ? (
+              {loading ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Cargando registros...</p>
+                </div>
+              ) : filteredRecords.length === 0 ? (
                 <div className="text-center py-12">
                   <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -540,7 +584,7 @@ export const History: React.FC<HistoryProps> = ({ onBack }) => {
             {/* Paginación y Resumen */}
             <div className="mt-6 flex flex-col sm:flex-row justify-between items-center gap-4 pt-4 border-t">
               <div className="text-sm text-gray-600">
-                Mostrando <strong>{filteredRecords.length}</strong> de <strong>{mockRecords.length}</strong> registros
+                Mostrando <strong>{filteredRecords.length}</strong> de <strong>{records.length}</strong> registros
                 {statusFilter !== 'todos' && (
                   <span className="ml-2 text-indigo-600">
                     (filtrado por: {statusFilter})

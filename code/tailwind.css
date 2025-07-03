@@ -1,3 +1,4 @@
+@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -69,10 +70,6 @@
   --xsmall-text-12-letter-spacing: 0px;
   --xsmall-text-12-line-height: 21px;
 }
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
 
 @layer base {
   :root {

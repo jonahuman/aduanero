@@ -1,19 +1,24 @@
 import React, { useState } from 'react';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
+import { useNotification, Notification } from '../../components/ui/notification';
+import { apiService } from '../../services/api';
 import { FileText, Upload, ArrowLeft, ArrowRight, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface DocumentUploadProps {
   onNext: (documents: any) => void;
   onBack: () => void;
+  userData?: any;
 }
 
-export const DocumentUpload: React.FC<DocumentUploadProps> = ({ onNext, onBack }) => {
+export const DocumentUpload: React.FC<DocumentUploadProps> = ({ onNext, onBack, userData }) => {
   const [documents, setDocuments] = useState({
     passport: null as File | null,
     idCard: null as File | null,
   });
   const [dragOver, setDragOver] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const { notifications, showSuccess, showError, removeNotification } = useNotification();
 
   const handleFileChange = (type: 'passport' | 'idCard', file: File | null) => {
     setDocuments(prev => ({
@@ -52,10 +57,49 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({ onNext, onBack }
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (canProceed) {
+    if (!canProceed) return;
+    
+    setIsLoading(true);
+    
+    try {
+      const uploadPromises = [];
+      
+      if (documents.passport && userData?.userId) {
+        const formData = new FormData();
+        formData.append('file', documents.passport);
+        formData.append('userId', userData.userId);
+        formData.append('type', 'passport');
+        formData.append('documentNumber', userData.passportNumber || 'TEMP001');
+        formData.append('expirationDate', new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString());
+        uploadPromises.push(apiService.uploadDocument(formData));
+      }
+      
+      if (documents.idCard && userData?.userId) {
+        const formData = new FormData();
+        formData.append('file', documents.idCard);
+        formData.append('userId', userData.userId);
+        formData.append('type', 'id_card');
+        formData.append('documentNumber', userData.idNumber || 'TEMP002');
+        formData.append('expirationDate', new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString());
+        uploadPromises.push(apiService.uploadDocument(formData));
+      }
+      
+      await Promise.all(uploadPromises);
+      showSuccess('¡Excelente! Tus documentos se subieron correctamente');
+      
+      // Crear registro aduanero automáticamente
+      if (userData?.userId) {
+        await apiService.processUserRegistration(userData, documents);
+        showSuccess('¡Listo! Tu registro está completo');
+      }
+      
       onNext(documents);
+    } catch (error: any) {
+      showError(error.message || 'No se pudieron subir los documentos');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -151,7 +195,16 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({ onNext, onBack }
   const canProceed = documents.passport || documents.idCard;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-100 p-4">
+    <>
+      {notifications.map(notification => (
+        <Notification
+          key={notification.id}
+          type={notification.type}
+          message={notification.message}
+          onClose={() => removeNotification(notification.id)}
+        />
+      ))}
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-100 p-4">
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
           <Button
@@ -225,14 +278,14 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({ onNext, onBack }
                 </div>
                 <Button
                   type="submit"
-                  disabled={!canProceed}
+                  disabled={!canProceed || isLoading}
                   className={`min-w-[150px] ${
-                    canProceed 
+                    canProceed && !isLoading
                       ? 'bg-purple-600 hover:bg-purple-700' 
                       : 'bg-gray-300 cursor-not-allowed'
                   }`}
                 >
-                  {canProceed ? 'Continuar' : 'Seleccione un documento'}
+                  {isLoading ? 'Subiendo...' : canProceed ? 'Continuar' : 'Seleccione un documento'}
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </div>
@@ -240,6 +293,7 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({ onNext, onBack }
           </CardContent>
         </Card>
       </div>
-    </div>
+      </div>
+    </>
   );
 };

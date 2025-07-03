@@ -143,7 +143,7 @@ function App() {
       case 'personal-data':
         return <PersonalData onNext={handlePersonalDataNext} onBack={handleBack} />;
       case 'document-upload':
-        return <DocumentUpload onNext={handleDocumentUploadNext} onBack={handleBack} />;
+        return <DocumentUpload onNext={handleDocumentUploadNext} onBack={handleBack} userData={userData} />;
       case 'history':
         return <History onBack={handleBack} />;
       default:

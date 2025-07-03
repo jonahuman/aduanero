@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
+import { useNotification, Notification } from '../../components/ui/notification';
+import { apiService } from '../../services/api';
 import { User, ArrowLeft, ArrowRight } from 'lucide-react';
 
 interface PersonalDataProps {
@@ -20,6 +22,8 @@ export const PersonalData: React.FC<PersonalDataProps> = ({ onNext, onBack }) =>
     passportNumber: '',
     idNumber: '',
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const { notifications, showSuccess, showError, removeNotification } = useNotification();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -28,13 +32,32 @@ export const PersonalData: React.FC<PersonalDataProps> = ({ onNext, onBack }) =>
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onNext(formData);
+    setIsLoading(true);
+
+    try {
+      const response = await apiService.createUser(formData);
+      showSuccess('¡Perfecto! Tus datos se guardaron correctamente');
+      onNext({ ...formData, userId: response.user.id });
+    } catch (error: any) {
+      showError(error.message || 'No se pudieron guardar tus datos');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 p-4">
+    <>
+      {notifications.map(notification => (
+        <Notification
+          key={notification.id}
+          type={notification.type}
+          message={notification.message}
+          onClose={() => removeNotification(notification.id)}
+        />
+      ))}
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 p-4">
       <div className="max-w-2xl mx-auto">
         <div className="mb-6">
           <Button
@@ -178,9 +201,10 @@ export const PersonalData: React.FC<PersonalDataProps> = ({ onNext, onBack }) =>
               <div className="flex justify-end pt-4">
                 <Button
                   type="submit"
+                  disabled={isLoading}
                   className="bg-green-600 hover:bg-green-700 min-w-[150px]"
                 >
-                  Continuar
+                  {isLoading ? 'Guardando...' : 'Continuar'}
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </div>
@@ -188,6 +212,7 @@ export const PersonalData: React.FC<PersonalDataProps> = ({ onNext, onBack }) =>
           </CardContent>
         </Card>
       </div>
-    </div>
+      </div>
+    </>
   );
 };

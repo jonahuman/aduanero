@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { MiniLoading } from '../../components/ui/mini-loading';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotification, Notification } from '../../components/ui/notification';
+import { apiService } from '../../services/api';
 import { 
   LayoutDashboard, 
   Users, 
@@ -24,12 +26,31 @@ interface DashboardProps {
 export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onLogout }) => {
   const { user, logout } = useAuth();
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
+  const [stats, setStats] = useState({
+    users: { total: 0 },
+    documents: { total: 0, approved: 0, pending: 0, rejected: 0 },
+    customs_records: { total: 0, active: 0, inactive: 0, pending: 0 }
+  });
+  const { notifications, showSuccess, showError, removeNotification } = useNotification();
 
-  const stats = [
-    { title: 'Usuarios Activos', value: '1,234', icon: Users, color: 'text-green-600' },
-    { title: 'Documentos Procesados', value: '5,678', icon: FileText, color: 'text-blue-600' },
-    { title: 'Pendientes', value: '89', icon: BarChart3, color: 'text-yellow-600' },
-    { title: 'Rechazados', value: '12', icon: Shield, color: 'text-red-600' },
+  useEffect(() => {
+    loadStats();
+  }, []);
+
+  const loadStats = async () => {
+    try {
+      const response = await apiService.getCustomsStats();
+      setStats(response);
+    } catch (error: any) {
+      showError('No se pudieron cargar los datos');
+    }
+  };
+
+  const dashboardStats = [
+    { title: 'Usuarios Registrados', value: stats.users.total.toString(), icon: Users, color: 'text-green-600' },
+    { title: 'Documentos Procesados', value: stats.documents.approved.toString(), icon: FileText, color: 'text-blue-600' },
+    { title: 'Pendientes', value: stats.documents.pending.toString(), icon: BarChart3, color: 'text-yellow-600' },
+    { title: 'Rechazados', value: stats.documents.rejected.toString(), icon: Shield, color: 'text-red-600' },
   ];
 
   const handleQuickAction = (action: string, screen: string) => {
@@ -78,7 +99,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onLogout }) =>
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+    <>
+      {notifications.map(notification => (
+        <Notification
+          key={notification.id}
+          type={notification.type}
+          message={notification.message}
+          onClose={() => removeNotification(notification.id)}
+        />
+      ))}
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -125,7 +155,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onLogout }) =>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {stats.map((stat, index) => (
+          {dashboardStats.map((stat, index) => (
             <Card key={index} className="hover:shadow-md transition-shadow">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
@@ -234,6 +264,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onLogout }) =>
           </CardContent>
         </Card>
       </div>
-    </div>
+      </div>
+    </>
   );
 };

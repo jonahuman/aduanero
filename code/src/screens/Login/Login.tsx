@@ -3,6 +3,7 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotification, Notification } from '../../components/ui/notification';
 import { ShieldCheck, AlertCircle } from 'lucide-react';
 
 interface LoginProps {
@@ -15,28 +16,51 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
+  const { notifications, showSuccess, showError, removeNotification } = useNotification();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    
+    // Validar email
+    if (!email.includes('@')) {
+      setError('El correo debe contener una @');
+      showError('El correo debe contener una @');
+      return;
+    }
+    
     setIsLoading(true);
 
     try {
-      const success = await login(email, password);
-      if (success) {
+      const result = await login(email, password);
+      if (result.success) {
+        showSuccess('¡Bienvenido! Has ingresado correctamente');
         onLoginSuccess();
       } else {
-        setError('Credenciales incorrectas. Use admin@aduana.gov / admin123');
+        const errorMsg = result.message || 'Usuario o contraseña incorrectos';
+        setError(errorMsg);
+        showError(errorMsg);
       }
     } catch (err) {
-      setError('Error al iniciar sesión');
+      const errorMsg = 'No se pudo conectar. Revisa tu conexión';
+      setError(errorMsg);
+      showError(errorMsg);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <>
+      {notifications.map(notification => (
+        <Notification
+          key={notification.id}
+          type={notification.type}
+          message={notification.message}
+          onClose={() => removeNotification(notification.id)}
+        />
+      ))}
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center space-y-4">
           <div className="mx-auto w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
@@ -58,7 +82,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
               <Input
                 id="email"
                 type="email"
-                placeholder="admin@aduana.gov"
+                placeholder="escriba su correo"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -72,7 +96,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
               <Input
                 id="password"
                 type="password"
-                placeholder="••••••••"
+                placeholder="escriba su contraseña"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -93,13 +117,9 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
               {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
             </Button>
           </form>
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-            <p className="text-sm text-blue-800 font-medium">Credenciales de prueba:</p>
-            <p className="text-sm text-blue-700">Email: admin@aduana.gov</p>
-            <p className="text-sm text-blue-700">Contraseña: admin123</p>
-          </div>
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </>
   );
 };
