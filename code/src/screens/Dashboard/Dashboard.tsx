@@ -215,54 +215,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onLogout }) =>
           </div>
         </div>
 
-        {/* Recent Activity */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Actividad Reciente</CardTitle>
-            <CardDescription>
-              Últimas acciones realizadas en el sistema
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {[
-                {
-                  action: 'Documento aprobado',
-                  user: 'Juan Pérez',
-                  time: 'Hace 2 horas',
-                  type: 'success',
-                },
-                {
-                  action: 'Nuevo pasajero registrado',
-                  user: 'María González',
-                  time: 'Hace 4 horas',
-                  type: 'info',
-                },
-                {
-                  action: 'Documento rechazado',
-                  user: 'Carlos Martínez',
-                  time: 'Hace 6 horas',
-                  type: 'error',
-                },
-              ].map((activity, index) => (
-                <div key={index} className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
-                  <div className={`w-2 h-2 rounded-full ${
-                    activity.type === 'success' ? 'bg-green-500' :
-                    activity.type === 'info' ? 'bg-blue-500' : 'bg-red-500'
-                  }`} />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">
-                      {activity.action}
-                    </p>
-                    <p className="text-xs text-gray-600">
-                      {activity.user} • {activity.time}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+
       </div>
       </div>
     </>
