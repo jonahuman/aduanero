@@ -9,7 +9,8 @@ import type {
   CustomsStats, 
   SetupStatus, 
   CreateAdminRequest,
-  PaginatedResponse 
+  PaginatedResponse,
+  Activity 
 } from '../types';
 
 const API_BASE_URL = 'http://localhost:3000/api';
@@ -224,6 +225,16 @@ class ApiService {
       method: 'DELETE',
       data: { email },
     });
+  }
+
+  // Actividad reciente
+  async getRecentActivity(limit = 10): Promise<{ activities: Activity[]; total: number }> {
+    const params = new URLSearchParams({ limit: limit.toString() });
+    return await this.request(`/activity/recent?${params}`);
+  }
+
+  async getActivitySummary(): Promise<{ today: { users: number; documents: number; records: number }; date: string }> {
+    return await this.request('/activity/summary');
   }
 }
 

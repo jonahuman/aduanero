@@ -110,3 +110,21 @@ export interface ApiResponse<T = any> {
   error?: string;
   data?: T;
 }
+
+export interface Activity {
+  id: string;
+  action: string;
+  user: string;
+  time: string;
+  type: 'success' | 'info' | 'error';
+  details?: string;
+}
+
+export interface ActivitySummary {
+  today: {
+    users: number;
+    documents: number;
+    records: number;
+  };
+  date: string;
+}

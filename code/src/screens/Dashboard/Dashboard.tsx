@@ -17,6 +17,7 @@ import {
   History,
   Shield
 } from 'lucide-react';
+import type { Activity } from '../../types';
 
 interface DashboardProps {
   onNavigate: (screen: string) => void;
@@ -215,9 +216,96 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onLogout }) =>
           </div>
         </div>
 
-
+        {/* Recent Activity */}
+        <RecentActivity />
       </div>
       </div>
     </>
+  );
+};
+
+// Componente para actividad reciente
+const RecentActivity: React.FC = () => {
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { showError } = useNotification();
+
+  useEffect(() => {
+    loadRecentActivity();
+  }, []);
+
+  const loadRecentActivity = async (): Promise<void> => {
+    try {
+      const response = await apiService.getRecentActivity(5);
+      setActivities(response.activities);
+    } catch (error: any) {
+      showError('No se pudo cargar la actividad reciente');
+      setActivities([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatTime = (timeString: string): string => {
+    const date = new Date(timeString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffDays > 0) {
+      return `Hace ${diffDays} día${diffDays > 1 ? 's' : ''}`;
+    } else if (diffHours > 0) {
+      return `Hace ${diffHours} hora${diffHours > 1 ? 's' : ''}`;
+    } else {
+      return 'Hace unos minutos';
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Actividad Reciente</CardTitle>
+        <CardDescription>
+          Últimas acciones realizadas en el sistema
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="text-center py-4">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="text-sm text-gray-500 mt-2">Cargando actividad...</p>
+          </div>
+        ) : activities.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-gray-500">No hay actividad reciente</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {activities.map((activity) => (
+              <div key={activity.id} className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
+                <div className={`w-2 h-2 rounded-full ${
+                  activity.type === 'success' ? 'bg-green-500' :
+                  activity.type === 'info' ? 'bg-blue-500' : 'bg-red-500'
+                }`} />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-900">
+                    {activity.action}
+                  </p>
+                  <p className="text-xs text-gray-600">
+                    {activity.user} • {formatTime(activity.time)}
+                  </p>
+                  {activity.details && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      {activity.details}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
