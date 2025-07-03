@@ -47,7 +47,7 @@ function App() {
         message = 'Inicializando carga de documentos...';
         break;
       case 'history':
-        message = 'Cargando historial de usuarios...';
+        message = 'Cargando historial de pasajeros...';
         break;
       default:
         message = 'Cargando...';

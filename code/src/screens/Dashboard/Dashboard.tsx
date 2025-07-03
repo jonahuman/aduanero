@@ -47,7 +47,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onLogout }) =>
   };
 
   const dashboardStats = [
-    { title: 'Usuarios Registrados', value: stats.users.total.toString(), icon: Users, color: 'text-green-600' },
+    { title: 'Pasajeros Registrados', value: stats.users.total.toString(), icon: Users, color: 'text-green-600' },
     { title: 'Documentos Procesados', value: stats.documents.approved.toString(), icon: FileText, color: 'text-blue-600' },
     { title: 'Pendientes', value: stats.documents.pending.toString(), icon: BarChart3, color: 'text-yellow-600' },
     { title: 'Rechazados', value: stats.documents.rejected.toString(), icon: Shield, color: 'text-red-600' },
@@ -74,8 +74,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onLogout }) =>
   const quickActions = [
     {
       id: 'register',
-      title: 'Registrar Usuario',
-      description: 'Agregar nuevo usuario al sistema',
+      title: 'Registrar Pasajero',
+      description: 'Agregar nuevo pasajero al sistema',
       icon: UserPlus,
       action: () => handleQuickAction('register', 'personal-data'),
       color: 'bg-green-600 hover:bg-green-700',
@@ -233,7 +233,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onLogout }) =>
                   type: 'success',
                 },
                 {
-                  action: 'Nuevo usuario registrado',
+                  action: 'Nuevo pasajero registrado',
                   user: 'María González',
                   time: 'Hace 4 horas',
                   type: 'info',
